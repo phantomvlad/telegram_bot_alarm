@@ -1,0 +1,39 @@
+version: '3.7'
+services:
+  web:
+    build: .
+    command: python /code/main.py
+    volumes:
+      - .:/code
+    ports:
+      - 7000:7000
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    env_file:
+      - .env
+    ports:
+      - 5431:5432
+    volumes:
+      - postgres:/data/postgres
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6378:6379
+    volumes:
+      - ./redis:/root/redis
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=16
+
+volumes:
+  postgres:
