@@ -9,8 +9,13 @@ requests = "*"
 python-dotenv = "*"
 redis = "*"
 aioredis = "*"
+sqlalchemy = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.11"
+
+[pipenv]
+allow_prereleases = true

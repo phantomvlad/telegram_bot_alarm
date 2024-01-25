@@ -28,8 +28,8 @@ def load_config(path: str | None = None) -> Config:
         ),
         db = DatabaseConfig(
             database = os.getenv('POSTGRES_DB'),
-            db_host = '127.0.0.1',
-            db_port = '5431',
+            db_host = os.getenv('POSTGRES_HOST'),
+            db_port = os.getenv('POSTGRES_PORT'),
             db_user = os.getenv('POSTGRES_USER'),
             db_password = os.getenv('POSTGRES_PASSWORD')
         )

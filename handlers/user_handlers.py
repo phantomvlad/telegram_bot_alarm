@@ -15,7 +15,6 @@ buttons.append(button_help)
 builder_bt.add(*buttons)
 builder_bt.adjust(2)
 
-@router.message(CommandStart())
 async def process_start_command(message: Message) -> None:
     await message.answer(text=LEXICON_RU['/start'])
 
