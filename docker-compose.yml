@@ -2,7 +2,7 @@ version: '3.7'
 services:
   web:
     build: .
-    command: python /code/main.py
+    command: python /code/bot.py
     volumes:
       - .:/code
     ports:
