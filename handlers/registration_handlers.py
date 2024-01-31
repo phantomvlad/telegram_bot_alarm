@@ -1,12 +1,9 @@
-from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram import F, types
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state, State, StatesGroup
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import (CallbackQuery, InlineKeyboardButton,
-                           InlineKeyboardMarkup, Message, PhotoSize)
-from aiogram.methods import SendContact
-from sqlalchemy.orm import session
+from aiogram.types import Message
+
 from sqlalchemy import text
 
 from database.models.user import User
@@ -24,7 +21,7 @@ button_phone = types.KeyboardButton(
     request_contact=True,
 )
 
-keyboard = types.ReplyKeyboardMarkup(keyboard=[[button_phone]], resize_keyboard=True)
+keyboard = types.ReplyKeyboardMarkup(keyboard=[[button_phone]], resize_keyboard=True, one_time_keyboard=True)
 
 @router.message(Command(commands='registration'), StateFilter(default_state))
 async def process_start_registration(message: Message, session: AsyncSession, state: FSMContext):
@@ -39,7 +36,9 @@ async def process_start_registration(message: Message, session: AsyncSession, st
 @router.message(StateFilter(FSMRegistrationForm.user_name), F.text.isalpha())
 async def process_name_sent(message: Message, state: FSMContext):
     await state.update_data(user_name = message.text)
-    await message.answer(text='Отправьте номер телефона', reply_markup=keyboard)
+    await message.answer(text='Отправьте номер телефона',
+                         reply_markup=keyboard,
+                         input_field_placeholder='Нажмите кнопку ниже')
     await state.set_state(FSMRegistrationForm.user_phone)
 
 @router.message(StateFilter(FSMRegistrationForm.user_phone))

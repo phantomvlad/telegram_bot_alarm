@@ -12,12 +12,14 @@ class DatabaseConfig:
 
 @dataclass
 class TgBot:
-    token: str            # Токен для доступа к телеграм-боту
+    token: str           # Токен для доступа к телеграм-боту
+    creator: str
 
 @dataclass
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
+
 
 def load_config(path: str | None = None) -> Config:
     load_dotenv(dotenv_path = path)
@@ -25,6 +27,7 @@ def load_config(path: str | None = None) -> Config:
     return Config(
         tg_bot = TgBot(
             token = os.getenv('API_TOKEN'),
+            creator = os.getenv('CREATOR_ID')
         ),
         db = DatabaseConfig(
             database = os.getenv('POSTGRES_DB'),
@@ -32,6 +35,6 @@ def load_config(path: str | None = None) -> Config:
             db_port = os.getenv('POSTGRES_PORT'),
             db_user = os.getenv('POSTGRES_USER'),
             db_password = os.getenv('POSTGRES_PASSWORD')
-        )
+        ),
     )
 
