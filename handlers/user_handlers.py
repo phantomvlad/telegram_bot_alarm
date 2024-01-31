@@ -15,6 +15,7 @@ buttons.append(button_help)
 builder_bt.add(*buttons)
 builder_bt.adjust(2)
 
+@router.message(Command(commands='start'))
 async def process_start_command(message: Message) -> None:
     await message.answer(text=LEXICON_RU['/start'])
 
@@ -25,3 +26,7 @@ async def process_help_command(message: Message) -> None:
 @router.message(Command(commands='menu'))
 async def process_start_command(message: Message) -> None:
     await message.answer(text='Меню', reply_markup=builder_bt.as_markup(resize_keyboard=True))
+
+@router.message(Command(commands='get_position'))
+async def process_get_position(message: Message) -> None:
+    await bot.send_lo

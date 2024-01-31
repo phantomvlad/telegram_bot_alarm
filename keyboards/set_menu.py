@@ -10,7 +10,9 @@ async def set_main_menu(bot: Bot) -> None:
         BotCommand(command='/contacts',
                    description='Другие способы связи'),
         BotCommand(command='/start',
-                   description='Приветствие бота')
+                   description='Приветствие бота'),
+        BotCommand(command='/registration',
+                   description='Регистрация')
     ]
 
     await bot.set_my_commands(main_menu_commands)

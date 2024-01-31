@@ -9,8 +9,9 @@ requests = "*"
 python-dotenv = "*"
 redis = "*"
 aioredis = "*"
-sqlalchemy = "*"
 psycopg2-binary = "*"
+asyncpg = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
