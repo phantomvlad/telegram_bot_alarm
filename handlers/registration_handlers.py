@@ -53,7 +53,7 @@ async def process_name_sent(message: Message, state: FSMContext):
     await state.set_state(FSMRegistrationForm.user_phone)
 
 @router.message(StateFilter(FSMRegistrationForm.user_name))
-async def process_name_sent(message: Message, state: FSMContext):
+async def process_name_sent(message: Message):
     await message.answer(text='Вы ввели странное имя, должны быть только буквы\n'
                               'Если хотите отменить регистрацию - введите команду /cancel')
 
@@ -75,3 +75,6 @@ async def process_number_sent(message: Message, state: FSMContext, session: Asyn
                               'Приятного использования!',
                          reply_markup=ReplyKeyboardRemove())
     await state.clear()
+
+
+

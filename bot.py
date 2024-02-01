@@ -8,7 +8,7 @@ from keyboards.set_menu import set_main_menu
 import asyncio
 
 from config.config import load_config, Config
-from handlers import other_handlers, user_handlers, registration_handlers
+from handlers import other_handlers, user_handlers, registration_handlers, route_handlers
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from database.models.base import Base
 from middlewares.db import DbSessionMiddleware
@@ -32,6 +32,7 @@ async def main() -> None:
     dp.update.middleware(DbSessionMiddleware(session_pool=sessionmaker))
     dp.callback_query.middleware(CallbackAnswerMiddleware())
     dp.include_router(registration_handlers.router)
+    dp.include_router(route_handlers.router)
     dp.include_router(user_handlers.router)
     dp.include_router(other_handlers.router)
 

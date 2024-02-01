@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-aiogram = "*"
 requests = "*"
 python-dotenv = "*"
 redis = "*"
@@ -12,6 +11,7 @@ aioredis = "*"
 psycopg2-binary = "*"
 asyncpg = "*"
 sqlalchemy = "*"
+aiogram = "*"
 
 [dev-packages]
 
