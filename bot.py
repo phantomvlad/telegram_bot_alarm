@@ -2,6 +2,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
+from database.models.user import User
+from database.models.route import Route
 from keyboards.set_menu import set_main_menu
 import asyncio
 
