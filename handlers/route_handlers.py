@@ -114,7 +114,7 @@ async def process_start_g_error(message: Message, state: FSMContext):
 @router.message(StateFilter(FSMCreateRouteForm.date_start), F.text == 'По датам')
 async def process_days_press(message: Message, state: FSMContext):
     await message.answer(text='Введите дату или даты через пробел в формате\n"ДД.ММ.ГГГГ ДД.ММ.ГГГГ\n'
-                              'Например: 22.02.2024 24.02.23"', reply_markup=ReplyKeyboardRemove())
+                              'Например: 22.02.2024 24.02.2023"', reply_markup=ReplyKeyboardRemove())
     await state.set_state(FSMCreateRouteForm.date_day)
 
 
@@ -128,7 +128,7 @@ async def process_week_press(message: Message, state: FSMContext):
 @router.message(StateFilter(FSMCreateRouteForm.date_day), DaysFilter())
 async def process_days_finish(message: Message, state: FSMContext, dates: dict[str]):
     await message.answer(text=f'Даты уведомлений: {message.text}')
-    await state.update_data(date_day=[datetime.strptime(day,"%d.%m.%Y").date() for day in dates])
+    await state.update_data(date_day=dates)
     await state.update_data(date_week=None)
     await message.answer(text=f'Введите время приезда на работу\n'
                               f'Формат: чч:мм\n'
@@ -153,7 +153,6 @@ async def process_days_finish(message: Message, state: FSMContext, dates: dict[i
 @router.message(StateFilter(FSMCreateRouteForm.date_week))
 async def process_days_finish(message: Message, state: FSMContext):
     await message.answer(text='Вы ввели что-то не то')
-    await state.set_state(FSMCreateRouteForm.date_week)
 
 @router.message(StateFilter(FSMCreateRouteForm.time_end), TimeFilter())
 async def process_time_end(message: Message, state: FSMContext, time: str):
@@ -164,15 +163,18 @@ async def process_time_end(message: Message, state: FSMContext, time: str):
     await state.set_state(FSMCreateRouteForm.time_other)
 
 @router.message(StateFilter(FSMCreateRouteForm.time_end))
-async def process_time_end_error(message: Message, state: FSMContext):
+async def process_time_end_error(message: Message):
     await message.answer(text='Вы ввели что-то не то')
-    await state.set_state(FSMCreateRouteForm.time_end)
 
 @router.message(StateFilter(FSMCreateRouteForm.time_other), TimeFilter())
-async def process_time_end_final(message: Message, state: FSMContext, time: str):
+async def process_time_other_final(message: Message, state: FSMContext, time: str):
     await state.update_data(time_other=time)
     await message.answer(text='Выберите тип транспорта', reply_markup=keyboard_type)
     await state.set_state(FSMCreateRouteForm.type_auto)
+
+@router.message(StateFilter(FSMCreateRouteForm.time_other))
+async def process_time_other_error(message: Message):
+    await message.answer(text='Вы ввели что-то не то')
 
 @router.message(StateFilter(FSMCreateRouteForm.type_auto), F.text == 'Личное авто')
 @router.message(StateFilter(FSMCreateRouteForm.type_auto), F.text =='Такси')
@@ -189,23 +191,27 @@ async def process_type_car_error(message: Message):
 async def process_type_car_end(message: Message, state: FSMContext, session: AsyncSession):
     await state.update_data(title=message.text.capitalize())
     data = await state.get_data()
+    days_result = []
+    if data['date_day'] is not None:
+        days_result = [datetime.strptime(day, "%m/%d/%Y").date() for day in data['date_day']]
     route = Route(title=data['title'],
                   start=data['start'],
                   stop=data['stop'],
                   time_end=datetime.strptime(data['time_end'], "%H:%M").time(),
                   time_other=datetime.strptime(data['time_other'], "%H:%M").time(),
                   type_auto=data['type_auto'],
-                  days_date=data['date_day'],
+                  days_date=days_result,
                   days_week=data['date_week'],
                   user_id=message.from_user.id)
 
     try:
         session.add(route)
         await session.commit()
+
         await message.answer(text='Вы удачно создали новый маршрут')
         await state.clear()
     except SQLAlchemyError as e:
-        await message.answer(text=f'Ошибка при сохранении данных {e}')
+        await message.answer(text=f'Ошибка при сохранении данных')
         await session.rollback()
 
 @router.message(StateFilter(FSMCreateRouteForm.title))
