@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.filters import DaysFilter, WeekFilter, TimeFilter
 from services.time import lat_lon_to_timezone
 from services.api import request_to_get_time
-from services.user import register_user, get_routes_user
+from services.user import register_user
+from services.routes import get_routes_user
 
 router = Router()
 
@@ -33,6 +34,17 @@ class FSMCreateRouteForm(StatesGroup):
     date_week = State()
     user_id = State()
 
+
+WEEKS = {
+    '1': 'понедельник',
+    '2': 'вторник',
+	'3': 'среда',
+    '4': 'четверг',
+    '5': 'пятница',
+    '6': 'суббота',
+    '7': 'воскресенье'
+}
+
 btn_date = InlineKeyboardButton(text='По датам', callback_data='days')
 btn_week = InlineKeyboardButton(text='По дням недели', callback_data='week')
 keyboard_days = InlineKeyboardMarkup(inline_keyboard=[[btn_date, btn_week]])
@@ -42,14 +54,30 @@ btn_routes_back_menu = InlineKeyboardButton(text='Вернуться в меню
 
 @router.message(Command(commands='routes'), StateFilter(default_state))
 async def process_routes_all(message: Message, session: AsyncSession):
+    keyboard_routes = [[btn_routes_new, btn_routes_back_menu]]
     if await register_user(message.from_user.id, session):
         routes = (await get_routes_user(message.from_user.id, session)).fetchall()
         if len(routes) != 0:
             for id, name, time_end in routes:
                 keyboard_routes = [[InlineKeyboardButton(text=f'{name}, {time_end}',
                                                              callback_data=f'route_{id}')]] + keyboard_routes
+        await message.answer(text='Все мои маршруты',
+                                         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_routes))
     else:
         await message.answer(text='Необходимо зарегистрироваться\n/registration или /menu')
+
+@router.callback_query(F.data == 'menu_routes_start', StateFilter(default_state))
+async def process_routes_start(callback: CallbackQuery, session: AsyncSession):
+    keyboard_routes = [[btn_routes_new, btn_routes_back_menu]]
+    if await register_user(callback.message.chat.id, session):
+        routes = (await get_routes_user(callback.message.chat.id, session)).fetchall()
+        if len(routes) != 0:
+            for id, name, time_end in routes:
+                keyboard_routes = [[InlineKeyboardButton(text=f'{name}, {time_end}', callback_data=f'route_{id}')]] + keyboard_routes
+        await callback.message.edit_text(text='Все мои маршруты', reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_routes))
+    else:
+        await callback.message.edit_reply_markup()
+        await callback.message.answer(text='Необходимо зарегистрироваться\n/registration или /menu')
 
 @router.message(Command(commands='cancel'), StateFilter(default_state))
 async def process_cancel_create(message: Message):
@@ -77,6 +105,7 @@ async def process_start_create(message: Message, session: AsyncSession, state: F
 
 @router.callback_query(F.data == 'menu_routes_create',StateFilter(default_state))
 async def process_start_create_callback(callback: CallbackQuery, session: AsyncSession, state: FSMContext):
+    keyboard_routes = [[btn_routes_new, btn_routes_back_menu]]
     if not await register_user(callback.message.chat.id, session):
         await callback.message.edit_reply_markup()
         await callback.message.edit_text(text='Для создания маршрута Вам нужно зарегистрироваться\n'
@@ -209,7 +238,13 @@ async def process_title_end(message: Message, state: FSMContext, session: AsyncS
             session.add(route)
             await session.commit()
 
-            await message.answer(text='Вы удачно создали новый маршрут')
+            await message.answer(text='Вы удачно создали новый маршрут:\n'
+                                      f'Название: {route.title}\n'
+                                      f'Время прибытия: {route.time_end}\n'
+                                      f'Время на расходы: {route.time_other}\n'
+                                      f'Даты: {", ".join([str(day) for day in days_result]) if len(days_result) != 0 else ", ".join([WEEKS[str(day)] for day in data["date_week"]])}\n'
+                                      f'Примерное время в пути (на данный момент): {route.time_average // 60} мин.\n'
+                                      '/menu')
             await state.clear()
         except SQLAlchemyError as e:
             await message.answer(text=f'Ошибка при сохранении данных')
