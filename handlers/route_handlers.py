@@ -7,7 +7,6 @@ from aiogram.fsm.state import default_state, State, StatesGroup
 from aiogram.types import Message, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, \
     CallbackQuery
 
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from database.models.route import Route
@@ -19,7 +18,7 @@ from services.filters import DaysFilter, WeekFilter, TimeFilter
 from services.time import lat_lon_to_timezone
 from services.api import request_to_get_time
 from services.user import register_user
-from services.routes import get_routes_user
+from services.routes import get_routes_user, get_route_id
 
 router = Router()
 
@@ -51,6 +50,7 @@ keyboard_days = InlineKeyboardMarkup(inline_keyboard=[[btn_date, btn_week]])
 
 btn_routes_new = InlineKeyboardButton(text='Новый маршрут', callback_data='menu_routes_create')
 btn_routes_back_menu = InlineKeyboardButton(text='Вернуться в меню', callback_data='menu_routes_back_menu')
+btn_routes_start = InlineKeyboardButton(text='Назад', callback_data='menu_routes_start')
 
 @router.message(Command(commands='routes'), StateFilter(default_state))
 async def process_routes_all(message: Message, session: AsyncSession):
@@ -72,8 +72,9 @@ async def process_routes_start(callback: CallbackQuery, session: AsyncSession):
     if await register_user(callback.message.chat.id, session):
         routes = (await get_routes_user(callback.message.chat.id, session)).fetchall()
         if len(routes) != 0:
-            for id, name, time_end in routes:
-                keyboard_routes = [[InlineKeyboardButton(text=f'{name}, {time_end}', callback_data=f'route_{id}')]] + keyboard_routes
+            for id, title, time_end in routes:
+                keyboard_routes = [[InlineKeyboardButton(text=f'{title}, {time_end}',
+                                                         callback_data=f'route_{id}')]] + keyboard_routes
         await callback.message.edit_text(text='Все мои маршруты', reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_routes))
     else:
         await callback.message.edit_reply_markup()
@@ -151,8 +152,7 @@ async def process_start_g_error(message: Message, state: FSMContext):
 async def process_days_press(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_reply_markup()
     await callback.message.edit_text(text='Введите дату или даты через пробел в формате\n"ДД.ММ.ГГГГ ДД.ММ.ГГГГ\n'
-                                          'Например: 22.02.2024 24.02.2023"'
-                                     )
+                                          'Например: 22.02.2024 24.02.2023"')
     await state.set_state(FSMCreateRouteForm.date_day)
 
 @router.callback_query(StateFilter(FSMCreateRouteForm.date_start), F.data == 'week')
@@ -253,6 +253,19 @@ async def process_title_end(message: Message, state: FSMContext, session: AsyncS
         await message.answer(text='Что-то пошло не так, обратитесь в поддержку')
         await state.clear()
 
+@router.callback_query(lambda c: 'route_' in c.data)
+async def process_route_list(callback: CallbackQuery, session: AsyncSession):
+    route = await get_route_id(int(callback.data.split('_')[1]), session)
+
+    btn_route_delete = InlineKeyboardButton(text='Удалить маршрут', callback_data=f'route_delete_{route[0]}')
+    btn_route_edit = InlineKeyboardButton(text='Изменить маршрут', callback_data=f'route_edit_{route[0]}')
+
+    keyboard_route = InlineKeyboardMarkup(inline_keyboard=[[btn_route_edit, btn_route_delete], [btn_routes_start, btn_routes_back_menu]])
+    await callback.message.edit_text(text=f'Название: {route[1]}\n'
+                              f'Время прибытия: {route[4]}\n'
+                              f'Время на расходы: {route[5]}\n'
+                              f'Даты: {", ".join([str(day) for day in route[6]]) if len(route[6]) != 0 else ", ".join([WEEKS[str(day)] for day in route[7]])}\n'
+                              f'Примерное время в пути: {int(route[9]) // 60} мин.', reply_markup=keyboard_route)
 @router.message(StateFilter(FSMCreateRouteForm.title))
 async def process_title_error(message: Message):
     await message.answer(text='Название должно быть менее 200 символов')
