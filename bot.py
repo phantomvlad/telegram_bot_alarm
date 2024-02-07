@@ -7,16 +7,14 @@ from database.models.route import Route
 from keyboards.set_menu import set_main_menu
 import asyncio
 
-from config.config import load_config, Config
-from handlers import other_handlers, user_handlers, registration_handlers, route_handlers
+from config.config import ConfigResult
+from handlers import other_handlers, user_handlers, registration_handlers, route_handlers, menu_handlers
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from database.models.base import Base
 from middlewares.db import DbSessionMiddleware
 
-connect_postgres = None
-
 async def main() -> None:
-    config: Config = load_config('.env')
+    config: ConfigResult = ConfigResult('.env')
 
     engine = create_async_engine(url=f'postgresql+asyncpg://{config.db.db_user}:{config.db.db_password}@{config.db.db_host}:{config.db.db_port}/{config.db.database}', echo=True)
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
@@ -31,6 +29,7 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
     dp.update.middleware(DbSessionMiddleware(session_pool=sessionmaker))
     dp.callback_query.middleware(CallbackAnswerMiddleware())
+    dp.include_router(menu_handlers.router)
     dp.include_router(registration_handlers.router)
     dp.include_router(route_handlers.router)
     dp.include_router(user_handlers.router)

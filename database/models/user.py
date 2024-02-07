@@ -1,7 +1,7 @@
 from .base import Base
 from sqlalchemy.orm import relationship
 
-from sqlalchemy import Column, Integer, BigInteger, String
+from sqlalchemy import Column, BigInteger, String
 
 class User(Base):
     __tablename__ = "users"

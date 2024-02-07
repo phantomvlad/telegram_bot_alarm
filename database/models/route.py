@@ -1,5 +1,3 @@
-from sqlalchemy.orm import relationship
-
 from .base import Base
 
 from sqlalchemy import Column, Integer, String, Enum, Time, Date, ForeignKey, BigInteger, Float
@@ -13,7 +11,8 @@ class Route(Base):
 	stop = Column(ARRAY(Float), nullable=False)
 	time_end = Column(Time, nullable=False)
 	time_other = Column(Time, nullable=False, default=0)
-	type_auto = Column(Enum('auto', 'truck', 'taxi', 'walking', name='type_auto'))
 	days_date = Column(ARRAY(Date), default=[])
 	days_week = Column(ARRAY(Integer), default=[])
+	timezone = Column(String, nullable=False)
+	time_average = Column(Integer, nullable=False)
 	user_id = Column(BigInteger, ForeignKey('users.user_id'), primary_key=True)

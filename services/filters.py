@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 

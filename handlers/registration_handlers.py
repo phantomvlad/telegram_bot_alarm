@@ -2,14 +2,13 @@ from aiogram import F, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state, State, StatesGroup
-from aiogram.types import Message, ReplyKeyboardRemove
-
-from sqlalchemy import text
+from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 
 from database.models.user import User
 from aiogram import Router
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.user import register_user
 router = Router()
 
 class FSMRegistrationForm(StatesGroup):
@@ -25,7 +24,7 @@ keyboard = types.ReplyKeyboardMarkup(keyboard=[[button_phone]], resize_keyboard=
 
 @router.message(Command(commands='cancel'), StateFilter(default_state))
 async def process_cancel_registration(message: Message):
-    await message.answer(text='Вы не заполяете никакую анкету')
+    await message.answer(text='Вы не заполняете никакую анкету')
 
 @router.message(Command(commands='cancel'), ~StateFilter(default_state))
 async def process_cancel_registration(message: Message, state: FSMContext):
@@ -34,12 +33,19 @@ async def process_cancel_registration(message: Message, state: FSMContext):
 
 @router.message(Command(commands='registration'), StateFilter(default_state))
 async def process_start_registration(message: Message, session: AsyncSession, state: FSMContext):
-    users = await session.execute(text(f"SELECT * FROM users WHERE user_id={message.from_user.id}"))
-
-    if users.fetchone() is not None:
+    if await register_user(message.from_user.id, session):
         await message.answer(text='Вы уже зарегистрированы')
     else:
         await message.answer(text='Пожалуйста, введите ваше имя')
+        await state.set_state(FSMRegistrationForm.user_name)
+
+@router.callback_query(F.data == 'menu_registrate', StateFilter(default_state))
+async def process_routes_all_callback(callback: CallbackQuery, session: AsyncSession, state: FSMContext):
+    if await register_user(callback.message.chat.id, session):
+        await callback.answer(text='Вы уже зарегистрированы')
+    else:
+        await callback.message.edit_reply_markup()
+        await callback.message.answer(text='Пожалуйста, введите ваше имя', reply_markup=None)
         await state.set_state(FSMRegistrationForm.user_name)
 
 @router.message(StateFilter(FSMRegistrationForm.user_name), F.text.isalpha())
@@ -72,7 +78,7 @@ async def process_number_sent(message: Message, state: FSMContext, session: Asyn
     session.add(user)
     await session.commit()
     await message.answer(text='Вы зарегистрированы\n'
-                              'Приятного использования!',
+                              'Приятного использования /menu',
                          reply_markup=ReplyKeyboardRemove())
     await state.clear()
 

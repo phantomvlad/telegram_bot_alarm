@@ -3,6 +3,8 @@ from aiogram.types import BotCommand
 
 async def set_main_menu(bot: Bot) -> None:
     main_menu_commands = [
+        BotCommand(command='/menu',
+                   description='Регистрация'),
         BotCommand(command='/registration',
                    description='Регистрация'),
         BotCommand(command='/routes',
